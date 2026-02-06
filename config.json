@@ -1,6 +1,0 @@
-{
-    "telegramToken": "YOUR_TELEGRAM_BOT_TOKEN",
-    "openRouterApiKey": "YOUR_OPENROUTER_API_KEY",
-    "model": "deepseek/deepseek-r1-0528:free",
-    "adminIds": []
-}

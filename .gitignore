@@ -1,3 +1,4 @@
 node_modules
 .env
 bot_data.sqlite
+config.json
