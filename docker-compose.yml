@@ -1,11 +1,9 @@
 version: "3.8"
 
 services:
-  bot:
-    build: .
-    container_name: procaznik-bot
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - ./src:/usr/src/app/src
+    bot:
+        build: .
+        container_name: procaznik-bot
+        restart: unless-stopped
+        volumes:
+            - ./src:/usr/src/app/src
