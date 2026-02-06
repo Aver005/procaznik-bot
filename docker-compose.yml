@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-    bot:
+    procaznik-bot:
         build: .
         container_name: procaznik-bot
         restart: unless-stopped
