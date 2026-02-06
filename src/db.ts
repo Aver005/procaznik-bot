@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "fs";
+import { dirname } from "path";
 
-const db = new Database("bot_data.sqlite", { create: true });
+const DB_PATH = process.env.DB_PATH || "data/bot_data.sqlite";
+
+// Ensure directory exists
+mkdirSync(dirname(DB_PATH), { recursive: true });
+
+const db = new Database(DB_PATH, { create: true });
 
 // Инициализация таблицы
 db.run(`

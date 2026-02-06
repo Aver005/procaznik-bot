@@ -6,5 +6,8 @@ RUN bun install --frozen-lockfile --production
 
 COPY . .
 
+# Create data directory and set permissions
+RUN mkdir -p data && chown -R bun:bun data
+
 USER bun
 CMD ["bun", "start"]
