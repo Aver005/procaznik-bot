@@ -1,10 +1,7 @@
-import { Bot } from "grammy";
+import { Bot, InlineKeyboard } from "grammy";
 import { clearSession, getModels, addModel, deleteModel, setActiveModel } from "../db";
 import { handleGenerate } from "../services/generation";
-import { getConfig } from "../config";
-
-const config = getConfig();
-const isAdmin = (id?: number) => id !== undefined && config.adminIds.includes(id);
+import { isAdmin } from "../config";
 
 export function registerCommands(bot: Bot)
 {
@@ -30,13 +27,26 @@ export function registerCommands(bot: Bot)
     {
         if (!isAdmin(ctx.from?.id)) return;
         const models = getModels();
-        let text = "<b>Список моделей:</b>\n\n";
+        const keyboard = new InlineKeyboard();
+
         models.forEach(m =>
         {
-            text += `${m.is_active ? "✅" : "❌"} <code>${m.name}</code>\n`;
+            if (m.is_active)
+            {
+                keyboard.text(`✅ ${m.name}`, "noop").row();
+            } else
+            {
+                keyboard.text(`${m.name}`, `set_model_${m.name}`);
+                keyboard.text(`🗑️`, `del_model_${m.name}`).row();
+            }
         });
-        text += "\n<b>Команды:</b>\n/add_model &lt;name&gt;\n/del_model &lt;name&gt;\n/set_model &lt;name&gt;";
-        await ctx.reply(text, { parse_mode: "HTML" });
+        
+        keyboard.text("🔄 Обновить", "refresh_models");
+
+        await ctx.reply("<b>Управление моделями:</b>\nНажми на имя, чтобы выбрать. На корзину, чтобы удалить.", {
+            parse_mode: "HTML",
+            reply_markup: keyboard
+        });
     });
 
     bot.command("add_model", async (ctx) =>

@@ -18,3 +18,11 @@ export const getConfig = (): Config =>
     const rawData = fs.readFileSync(configPath, 'utf-8');
     return JSON.parse(rawData);
 };
+
+export const isAdmin = (userId?: number): boolean =>
+{
+    if (!userId) return false;
+    const config = getConfig();
+    return config.adminIds.includes(userId);
+};
+

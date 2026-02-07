@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
-import { getSession, clearSession } from "../db";
+import { getSession, clearSession, getModels, setActiveModel, deleteModel } from "../db";
 import { handleGenerate } from "../services/generation";
+import { isAdmin } from "../config";
 
 export function registerCallbacks(bot: Bot)
 {
@@ -59,4 +60,74 @@ export function registerCallbacks(bot: Bot)
         await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
         await ctx.reply("Новый диалог. Контекст очищен.");
     });
+
+    // Model management callbacks
+    bot.callbackQuery("refresh_models", async (ctx) =>
+    {
+        if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery("Нет прав");
+        await updateModelsMessage(ctx);
+    });
+
+    bot.callbackQuery("noop", async (ctx) =>
+    {
+        await ctx.answerCallbackQuery();
+    });
+
+    bot.callbackQuery(/^set_model_(.+)$/, async (ctx) =>
+    {
+        if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery("Нет прав");
+        const match = ctx.match;
+        const name = match[1];
+        if (!name) return ctx.answerCallbackQuery("Ошибка: имя модели не найдено");
+
+        setActiveModel(name);
+        await ctx.answerCallbackQuery(`Модель ${name} выбрана`);
+        await updateModelsMessage(ctx);
+    });
+
+    bot.callbackQuery(/^del_model_(.+)$/, async (ctx) =>
+    {
+        if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery("Нет прав");
+        const match = ctx.match;
+        const name = match[1];
+        if (!name) return ctx.answerCallbackQuery("Ошибка: имя модели не найдено");
+
+        if (deleteModel(name)) await ctx.answerCallbackQuery(`Модель ${name} удалена`);
+        else await ctx.answerCallbackQuery("Ошибка удаления (нельзя удалить активную модель)");
+        await updateModelsMessage(ctx);
+    });
+
 }
+
+async function updateModelsMessage(ctx: any)
+{
+    const models = getModels();
+    const keyboard = new InlineKeyboard();
+
+    models.forEach(m =>
+    {
+        if (m.is_active)
+        {
+            keyboard.text(`✅ ${m.name}`, "noop").row();
+        } else
+        {
+            keyboard.text(`${m.name}`, `set_model_${m.name}`);
+            keyboard.text(`🗑️`, `del_model_${m.name}`).row();
+        }
+    });
+
+    keyboard.text("🔄 Обновить", "refresh_models");
+
+    try
+    {
+        await ctx.editMessageText("<b>Управление моделями:</b>\nНажми на имя, чтобы выбрать. На корзину, чтобы удалить.", {
+            parse_mode: "HTML",
+            reply_markup: keyboard
+        });
+    } catch (e)
+    {
+        // Ignore "message is not modified"
+        await ctx.answerCallbackQuery("Список обновлен");
+    }
+}
+
