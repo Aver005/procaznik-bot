@@ -1,5 +1,5 @@
 import { Context, InlineKeyboard } from "grammy";
-import { getSession, updateLastResponses } from "../db";
+import { getSession, updateLastResponses, getActiveModel } from "../db";
 import { generateResponses } from "../openrouter";
 import { getConfig } from "../config";
 
@@ -16,6 +16,8 @@ export async function handleGenerate(ctx: Context)
 
     const msg = await ctx.reply("Думаю...");
     const userName = ctx.from?.first_name || "User";
+    const activeModel = getActiveModel();
+    const modelName = activeModel ? activeModel.name : config.model;
 
     try
     {
@@ -32,7 +34,7 @@ export async function handleGenerate(ctx: Context)
             keyboard.text(`Вариант ${i + 1}`, `select_variant_${i}`);
         });
 
-        responseText += `\nИспользуется модель:\n<b>${config.model}</b>`;
+        responseText += `\nИспользуется модель:\n<b>${modelName}</b>`;
 
         keyboard.row();
         keyboard.text("Перегенерировать", "btn_regenerate");
@@ -48,7 +50,7 @@ export async function handleGenerate(ctx: Context)
     {
         console.error("Generation error:", error);
         let errorMessage = error instanceof Error ? error.message : `Произошла ошибка при генерации.`;
-        errorMessage += `\n\nИспользуется модель:\n<b>${config.model}</b>`;
+        errorMessage += `\n\nИспользуется модель:\n<b>${modelName}</b>`;
 
         const errorKeyboard = new InlineKeyboard()
             .text("Попробовать снова", "btn_regenerate")
@@ -60,3 +62,4 @@ export async function handleGenerate(ctx: Context)
         });
     }
 }
+

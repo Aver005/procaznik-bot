@@ -19,6 +19,13 @@ db.run(`
   )
 `);
 
+db.run(`
+    CREATE TABLE IF NOT EXISTS models (
+      name TEXT PRIMARY KEY,
+      is_active INTEGER DEFAULT 0
+    )
+  `);
+
 export interface MessageData
 {
     sender: string;
@@ -32,6 +39,73 @@ export interface Session
     state: 'idle' | 'collecting';
     last_responses: string[];
 }
+
+export interface AIModel
+{
+    name: string;
+    is_active: boolean;
+}
+
+export const initModels = (defaultModelName: string) =>
+{
+    const count = db.query("SELECT COUNT(*) as count FROM models").get() as { count: number };
+    if (count.count === 0)
+    {
+        db.run("INSERT INTO models (name, is_active) VALUES (?, 1)", [defaultModelName]);
+        console.log(`Initialized default model: ${defaultModelName}`);
+    }
+};
+
+export const getModels = (): AIModel[] =>
+{
+    const rows = db.query("SELECT * FROM models").all() as { name: string, is_active: number }[];
+    return rows.map(row => ({
+        name: row.name,
+        is_active: !!row.is_active
+    }));
+};
+
+export const getActiveModel = (): AIModel | undefined =>
+{
+    const row = db.query("SELECT * FROM models WHERE is_active = 1").get() as { name: string, is_active: number };
+    if (!row) return undefined;
+    return {
+        name: row.name,
+        is_active: !!row.is_active
+    };
+};
+
+export const addModel = (name: string) =>
+{
+    try
+    {
+        db.run("INSERT INTO models (name, is_active) VALUES (?, 0)", [name]);
+        return true;
+    } catch (e)
+    {
+        return false;
+    }
+};
+
+export const deleteModel = (name: string) =>
+{
+    // Prevent deleting the active model
+    const model = db.query("SELECT * FROM models WHERE name = ?").get(name) as { is_active: number };
+    if (model && model.is_active) return false;
+
+    db.run("DELETE FROM models WHERE name = ?", [name]);
+    return true;
+};
+
+export const setActiveModel = (name: string) =>
+{
+    db.transaction(() =>
+    {
+        db.run("UPDATE models SET is_active = 0");
+        db.run("UPDATE models SET is_active = 1 WHERE name = ?", [name]);
+    })();
+};
+
 
 export const getSession = (chatId: number): Session =>
 {

@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getConfig } from './config';
+import { getActiveModel } from './db';
 import fs from 'fs';
 import path from 'path';
 
@@ -30,17 +31,20 @@ const openai = new OpenAI({
 export const generateResponses = async (messages: { sender: string; text: string }[], userName: string): Promise<string[]> =>
 {
     const contextString = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
+    const activeModel = getActiveModel();
+    const modelName = activeModel ? activeModel.name : config.model;
 
     try
     {
         const completion = await openai.chat.completions.create({
-            model: config.model,
+            model: modelName,
             messages: [
                 { role: 'system', content: getSystemPrompt(userName) },
                 { role: 'user', content: `Контекст сообщений:\n${contextString}` }
             ],
             response_format: { type: "json_object" }
         });
+
 
         const content = completion.choices[0]?.message?.content;
         if (!content) throw new Error("Ошибка генерации: пустой ответ");
